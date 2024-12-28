@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import '../app/globals.css';
 
 export default function SearchAnime() {
   const [query, setQuery] = useState('');

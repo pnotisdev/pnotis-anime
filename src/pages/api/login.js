@@ -19,7 +19,7 @@ export default function handler(req, res) {
     }
     if (!user) {
       console.warn(`User not found: ${username}`);
-      return res.status(200).json({ error: 'User not found, please register first' });
+      return res.status(404).json({ error: 'User not found, please register first' });
     }
 
     compare(password, user.password, (err, result) => {
@@ -28,9 +28,9 @@ export default function handler(req, res) {
         return res.status(500).json({ error: 'Internal server error' });
       }
       if (result) {
-        const token = sign({ userId: user.id }, 'secret', { expiresIn: '1h' });
+        const token = sign({ userId: user.id, username: user.username }, 'secret', { expiresIn: '1h' });
         console.log(`Login successful for username: ${username}`);
-        return res.status(200).json({ message: 'Login successful', token });
+        res.status(200).json({ message: 'Login successful', token, username: user.username });
       } else {
         console.warn(`Invalid password for username: ${username}`);
         return res.status(401).json({ error: 'Invalid username or password' });

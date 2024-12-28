@@ -33,9 +33,41 @@ db.serialize(() => {
     episodes INTEGER, 
     score REAL, 
     status TEXT, 
+    current_episode INTEGER,
+    total_episodes INTEGER,
+    mal_id INTEGER,
+    jikan_status TEXT,
     user_id INTEGER, 
     FOREIGN KEY(user_id) REFERENCES users(id)
   )`);
+
+  // Add migration to ensure all columns exist
+  db.all(`PRAGMA table_info(anime)`, (err, rows) => {
+    if (err) {
+      console.error('Error checking table structure:', err);
+      return;
+    }
+
+    if (!rows || rows.length === 0) {
+      console.error('No columns found in the anime table');
+      return;
+    }
+
+    const columns = rows.map(row => row.name);
+    const requiredColumns = ['current_episode', 'total_episodes', 'mal_id', 'jikan_status'];
+
+    requiredColumns.forEach(column => {
+      if (!columns.includes(column)) {
+        db.run(`ALTER TABLE anime ADD COLUMN ${column} INTEGER`, (alterErr) => {
+          if (alterErr) {
+            console.error(`Error adding column ${column}:`, alterErr);
+          } else {
+            console.log(`Added missing column: ${column}`);
+          }
+        });
+      }
+    });
+  });
 
   console.log("Database tables ready.");
 });
