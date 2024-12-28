@@ -1,6 +1,6 @@
-# Pnotis Anime
+# Animestugan.se
 
-Pnotis Anime is a web application that allows users to manage their anime watchlist. Users can register, log in, search for anime, add anime to their list, update the status of anime, and remove anime from their list. And visit other users profiles.
+Animestugan.se is a web application that allows users to manage their anime watchlist. Users can register, log in, search for anime, add anime to their list, update the status of anime, and remove anime from their list. And visit other users profiles.
 
 ## Features
 

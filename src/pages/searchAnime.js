@@ -27,7 +27,7 @@ export default function SearchAnime() {
     <div>
       <input
         type="text"
-        placeholder="Search Anime..."
+        placeholder="Sök anime..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />

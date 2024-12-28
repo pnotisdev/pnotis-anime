@@ -26,6 +26,7 @@ db.serialize(() => {
     password TEXT
   )`);
   
+  // Create anime table first
   db.run(`CREATE TABLE IF NOT EXISTS anime (
     id INTEGER PRIMARY KEY, 
     title TEXT, 
@@ -37,8 +38,21 @@ db.serialize(() => {
     total_episodes INTEGER,
     mal_id INTEGER,
     jikan_status TEXT,
+    image_url TEXT,
+    rating REAL,
     user_id INTEGER, 
     FOREIGN KEY(user_id) REFERENCES users(id)
+  )`);
+
+  // Create anime_history table with explicit creation date
+  db.run(`CREATE TABLE IF NOT EXISTS anime_history (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER,
+    anime_id INTEGER,
+    episode_count INTEGER DEFAULT 1,
+    updated_at DATETIME DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(anime_id) REFERENCES anime(id)
   )`);
 
   // Add migration to ensure all columns exist
@@ -54,11 +68,12 @@ db.serialize(() => {
     }
 
     const columns = rows.map(row => row.name);
-    const requiredColumns = ['current_episode', 'total_episodes', 'mal_id', 'jikan_status'];
+    const requiredColumns = ['current_episode', 'total_episodes', 'mal_id', 'jikan_status', 'image_url', 'rating'];
 
     requiredColumns.forEach(column => {
       if (!columns.includes(column)) {
-        db.run(`ALTER TABLE anime ADD COLUMN ${column} INTEGER`, (alterErr) => {
+        const columnType = column === 'image_url' ? 'TEXT' : column === 'rating' ? 'REAL' : 'INTEGER';
+        db.run(`ALTER TABLE anime ADD COLUMN ${column} ${columnType}`, (alterErr) => {
           if (alterErr) {
             console.error(`Error adding column ${column}:`, alterErr);
           } else {

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import axios from 'axios';
 import '../app/globals.css';
+import { useRouter } from 'next/router';  // Add this import
 
 export default function Register() {
+  const router = useRouter();  // Add this line
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -12,7 +14,8 @@ export default function Register() {
     try {
       const response = await axios.post('/api/register', { username, password });
       setMessage(response.data.message);
-      // Redirect to the login page
+      // Redirect to the login page after successful registration
+      router.push('/login');
     } catch (error) {
       console.error('Registration failed:', error);
       setMessage(error.response?.data?.error || 'Registration failed');

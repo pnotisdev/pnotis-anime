@@ -1,33 +1,94 @@
 import db from '../../../../database';
 import { verify } from 'jsonwebtoken';
 import axios from 'axios';
+import rateLimit from 'express-rate-limit';
+import NodeCache from 'node-cache';
+
+// Initialize cache with 30 minutes TTL
+const cache = new NodeCache({ stdTTL: 1800 });
+
+// Create rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+
+async function searchAnime(query, malId) {
+  if (!query && !malId) {
+    throw new Error('Query or MAL ID required');
+  }
+
+  const cacheKey = malId || `search-${query}`;
+  const cachedData = cache.get(cacheKey);
+
+  if (cachedData) {
+    return cachedData;
+  }
+
+  try {
+    const response = await axios.get(
+      malId 
+        ? `https://api.jikan.moe/v4/anime/${malId}`
+        : 'https://api.jikan.moe/v4/anime', {
+          params: malId ? {} : { q: query }
+        }
+    );
+
+    cache.set(cacheKey, response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Jikan API error:', error.response?.data);
+    throw error;
+  }
+}
 
 export default async function handler(req, res) {
+  // Add logging to debug
+  console.log('Search query:', req.query);
+
+  // Apply rate limiting
+  await new Promise((resolve) => limiter(req, res, resolve));
+
   const { username } = req.query;
 
   if (req.method === 'GET' && (req.query.q || req.query.malId)) {
     try {
-      if (req.query.malId) {
-        const response = await axios.get(`https://api.jikan.moe/v4/anime/${req.query.malId}`);
-        return res.status(200).json(response.data);
-      }
-      if (req.query.q) {
-        const response = await axios.get('https://api.jikan.moe/v4/anime', {
-          params: { q: req.query.q },
-        });
-        return res.status(200).json(response.data);
-      }
+      const data = await searchAnime(req.query.q, req.query.malId);
+      // Add logging to see response
+      console.log('Search results:', data);
+      return res.status(200).json(data);
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to fetch from Jikan' });
+      console.error('Search error:', error);
+      return res.status(500).json({ 
+        error: error.message,
+        details: error.response?.data 
+      });
     }
   }
 
   if (req.method === 'GET') {
+    const { sort, filter, order = 'asc' } = req.query;
+
     db.get("SELECT id FROM users WHERE username = ?", [username], (err, user) => {
       if (err || !user) {
         return res.status(404).json({ error: 'User not found' });
       }
-      db.all("SELECT * FROM anime WHERE user_id = ?", [user.id], (err, rows) => {
+
+      let query = "SELECT * FROM anime WHERE user_id = ?";
+      const params = [user.id];
+
+      // Add filtering
+      if (filter) {
+        query += " AND status = ?";
+        params.push(filter);
+      }
+
+      // Add sorting
+      if (sort) {
+        query += ` ORDER BY ${sort} ${order.toUpperCase()}`;
+      }
+
+      db.all(query, params, (err, rows) => {
         if (err) {
           console.error('Database error:', err);
           return res.status(500).json({ error: 'Internal server error' });
@@ -53,21 +114,30 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'POST') {
-        const { title, status, currentEpisode, totalEpisodes, malId, jikanStatus } = req.body;
-        
+        const { title, status, currentEpisode, totalEpisodes, malId, jikanStatus, imageUrl } = req.body;
+
         if (!title || !status || !malId) {
           return res.status(400).json({ error: 'Missing required fields' });
         }
 
         db.run(
-          "INSERT INTO anime (title, status, current_episode, total_episodes, mal_id, jikan_status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [title, status, currentEpisode, totalEpisodes, malId, jikanStatus, userId],
+          "INSERT INTO anime (title, status, current_episode, total_episodes, mal_id, jikan_status, image_url, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [title, status, currentEpisode, totalEpisodes, malId, jikanStatus, imageUrl, userId],
           function(err) {
             if (err) {
               console.error('Database error:', err);
               return res.status(500).json({ error: 'Internal server error', details: err.message });
             }
-            return res.status(201).json({ id: this.lastID, title, status, currentEpisode, totalEpisodes, malId, jikanStatus });
+            return res.status(201).json({ 
+              id: this.lastID, 
+              title, 
+              status, 
+              currentEpisode, 
+              totalEpisodes, 
+              malId, 
+              jikanStatus,
+              imageUrl 
+            });
           }
         );
       } else if (req.method === 'DELETE') {
@@ -83,20 +153,35 @@ export default async function handler(req, res) {
         });
       } else if (req.method === 'PUT') {
         const animeId = req.query.id;
-        const { title, status, currentEpisode } = req.body;
-        db.run(
-          "UPDATE anime SET title = ?, status = ?, current_episode = ? WHERE id = ? AND user_id = ?", 
-          [title, status, currentEpisode, animeId, userId], 
-          function(err) {
-            if (err) {
-              return res.status(500).json({ error: 'Internal server error' });
-            }
-            if (this.changes === 0) {
-              return res.status(404).json({ error: 'Anime not found or not owned by user' });
-            }
-            return res.status(200).json({ id: animeId, title, status, currentEpisode });
+        const { title, status, currentEpisode, imageUrl, rating } = req.body;
+        let query, params;
+
+        if (rating !== undefined) {
+          query = "UPDATE anime SET rating = ? WHERE id = ? AND user_id = ?";
+          params = [rating, animeId, userId];
+        } else {
+          query = "UPDATE anime SET title = ?, status = ?, current_episode = ?, image_url = ? WHERE id = ? AND user_id = ?";
+          params = [title, status, currentEpisode, imageUrl, animeId, userId];
+        }
+
+        db.run(query, params, function(err) {
+          if (err) {
+            return res.status(500).json({ error: 'Internal server error' });
           }
-        );
+          if (this.changes === 0) {
+            return res.status(404).json({ error: 'Anime not found or not owned by user' });
+          }
+
+          // Log history when updating episodes
+          if (currentEpisode !== undefined) {
+            db.run(
+              "INSERT INTO anime_history (user_id, anime_id) VALUES (?, ?)",
+              [userId, animeId]
+            );
+          }
+
+          return res.status(200).json({ id: animeId, title, status, currentEpisode, imageUrl, rating });
+        });
       } else {
         return res.status(405).json({ error: 'Method not allowed' });
       }

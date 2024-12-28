@@ -31,19 +31,19 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <input
             type="text"
-            placeholder="Username"
+            placeholder="användarnamn"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full p-3 bg-bg-100 text-text-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-200"
           />
           <input
             type="password"
-            placeholder="Password"
+            placeholder="lösenord"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full p-3 bg-bg-100 text-text-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-200"
           />
-          <button type="submit" className="w-full p-3 bg-primary-200 text-bg-100 rounded-lg hover:bg-primary-300 transition duration-300">Login</button>
+          <button type="submit" className="w-full p-3 bg-primary-200 text-bg-100 rounded-lg hover:bg-primary-300 transition duration-300">Logga in</button>
         </form>
       </div>
     </div>
