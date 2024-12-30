@@ -35,7 +35,7 @@ export default function Navbar() {
       }
       setIsLoading(true);
       try {
-        const response = await axios.get('/api/anime', { params: { q: query } });
+        const response = await axios.get('/api/search', { params: { q: query } });
         setResults(response.data.data || []);
       } catch (error) {
         console.error('Error fetching search results:', error);
@@ -46,6 +46,12 @@ export default function Navbar() {
     }, 300),
     []
   );
+
+  const handleAnimeSelect = (animeId) => {
+    setQuery('');
+    setResults([]);
+    router.push(`/anime/${animeId}`);
+  };
 
   // Trigger search when query changes
   useEffect(() => {
@@ -77,10 +83,15 @@ export default function Navbar() {
           />
           {isLoading && <div className="absolute right-2 top-2 text-primary-200">Loading...</div>}
           {results.length > 0 && (
-            <ul className="absolute left-0 right-0 bg-bg-300 text-text-100 p-4 rounded shadow-lg mt-1 z-10">
+            <ul className="absolute w-full bg-bg-300 border border-primary-200 rounded-md mt-1 max-h-60 overflow-y-auto z-50">
               {results.map((anime) => (
-                <li key={anime.mal_id} className="mb-2 hover:text-primary-200">
-                  <Link href={`/anime/${anime.mal_id}`}>{anime.title}</Link>
+                <li 
+                  key={anime.mal_id}
+                  onClick={() => handleAnimeSelect(anime.mal_id)}
+                  className="p-2 hover:bg-bg-400 cursor-pointer"
+                >
+                  <div className="font-medium">{anime.title}</div>
+                  <div className="text-sm text-text-200">{anime.year}</div>
                 </li>
               ))}
             </ul>

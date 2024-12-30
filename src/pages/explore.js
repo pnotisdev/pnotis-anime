@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import axios from 'axios';
 import Image from 'next/image';
 import '../app/globals.css';
@@ -31,13 +32,15 @@ export default function Explore() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {animeList.map((anime) => (
             <div key={anime.mal_id} className="bg-bg-300 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src={anime.images.jpg.image_url}
-                alt={anime.title}
-                width={300}
-                height={400}
-                className="w-full h-48 object-cover"
-              />
+              <Link href={`/anime/${anime.mal_id}`}>
+                <Image
+                  src={anime.images.jpg.image_url}
+                  alt={anime.title}
+                  width={300}
+                  height={400}
+                  className="w-full h-48 object-cover cursor-pointer"
+                />
+              </Link>
               <div className="p-4">
                 <h3 className="text-lg">{anime.title}</h3>
                 <p>{anime.synopsis}</p>

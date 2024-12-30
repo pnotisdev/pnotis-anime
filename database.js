@@ -40,6 +40,7 @@ db.serialize(() => {
     jikan_status TEXT,
     image_url TEXT,
     rating REAL,
+    genres TEXT,
     user_id INTEGER, 
     FOREIGN KEY(user_id) REFERENCES users(id)
   )`);
@@ -55,6 +56,19 @@ db.serialize(() => {
     FOREIGN KEY(anime_id) REFERENCES anime(id)
   )`);
 
+  // Create reviews table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mal_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      created_at DATETIME NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users (id),
+      FOREIGN KEY (mal_id) REFERENCES anime (mal_id)
+    )
+  `);
+
   // Add migration to ensure all columns exist
   db.all(`PRAGMA table_info(anime)`, (err, rows) => {
     if (err) {
@@ -68,7 +82,7 @@ db.serialize(() => {
     }
 
     const columns = rows.map(row => row.name);
-    const requiredColumns = ['current_episode', 'total_episodes', 'mal_id', 'jikan_status', 'image_url', 'rating'];
+    const requiredColumns = ['current_episode', 'total_episodes', 'mal_id', 'jikan_status', 'image_url', 'rating', 'genres'];
 
     requiredColumns.forEach(column => {
       if (!columns.includes(column)) {
