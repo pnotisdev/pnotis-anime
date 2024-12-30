@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
+import Link from 'next/link';
 import '../../app/globals.css';
 import Navbar from '../../components/Navbar';
 import StarRating from '../../components/StarRating';
@@ -198,16 +199,22 @@ export default function UserAnime() {
           <ContributionCalendar watchHistory={watchHistory} />
         </div>
 
+        <a href={`/${username}/favorites`} className="text-blue-500 hover:text-blue-700">
+          View Favorites
+        </a>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {searchResults.map((anime) => (
             <div key={anime.mal_id} className="bg-bg-300 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src={anime.images?.jpg?.image_url}
-                alt={anime.title}
-                width={300}
-                height={400}
-                className="w-full h-48 object-cover"
-              />
+              {anime.images?.jpg?.image_url && (
+                <Image
+                  src={anime.images.jpg.image_url}
+                  alt={anime.title || 'Anime cover'}
+                  width={300}
+                  height={400}
+                  className="w-full h-48 object-cover"
+                />
+              )}
               <div className="p-4">
                 <span>{anime.title}</span>
                 {loggedInUser === username && (
@@ -277,14 +284,16 @@ export default function UserAnime() {
                     />
                   )}
                   <button type="submit" className="bg-green-500 text-white p-1 rounded">Save</button>
-                  <Image
-                    src={anime.image_url}
-                    alt={anime.title}
-                    width={300}
-                    height={400}
-                    className="w-full h-48 object-cover"
-                    priority
-                  />
+                  {anime.image_url && (
+                    <Image
+                      src={anime.image_url}
+                      alt={anime.title || 'Anime cover'}
+                      width={300}
+                      height={400}
+                      className="w-full h-48 object-cover"
+                      priority
+                    />
+                  )}
                   <div className="p-4">
                     <h3 className="text-lg">{anime.title}</h3>
                     <p>Status: {anime.status}</p>
@@ -306,14 +315,16 @@ export default function UserAnime() {
                 </form>
               ) : (
                 <>
-                  <Image
-                    src={anime.image_url}
-                    alt={anime.title}
-                    width={300}
-                    height={400}
-                    className="w-full h-48 object-cover"
-                    priority
-                  />
+                  {anime.image_url && (
+                    <Image
+                      src={anime.image_url}
+                      alt={anime.title || 'Anime cover'}
+                      width={300}
+                      height={400}
+                      className="w-full h-48 object-cover"
+                      priority
+                    />
+                  )}
                   <div className="p-4">
                     <h3 className="text-lg">{anime.title}</h3>
                     <p>Status: {anime.status}</p>

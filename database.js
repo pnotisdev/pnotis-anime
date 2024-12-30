@@ -69,6 +69,17 @@ db.serialize(() => {
     )
   `);
 
+  // Create favorites table
+  db.run(`CREATE TABLE IF NOT EXISTS favorites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    anime_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(anime_id) REFERENCES anime(id),
+    UNIQUE(user_id, anime_id)
+  )`);
+
   // Add migration to ensure all columns exist
   db.all(`PRAGMA table_info(anime)`, (err, rows) => {
     if (err) {

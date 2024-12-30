@@ -114,20 +114,27 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'POST') {
-        const { title, status, currentEpisode, totalEpisodes, malId, jikanStatus, imageUrl } = req.body;
+        const { title, status, currentEpisode, totalEpisodes, malId, jikanStatus, imageUrl, rating } = req.body;
 
         if (!title || !status || !malId) {
           return res.status(400).json({ error: 'Missing required fields' });
         }
 
         db.run(
-          "INSERT INTO anime (title, status, current_episode, total_episodes, mal_id, jikan_status, image_url, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          [title, status, currentEpisode, totalEpisodes, malId, jikanStatus, imageUrl, userId],
+          "INSERT INTO anime (title, status, current_episode, total_episodes, mal_id, jikan_status, image_url, rating, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [title, status, currentEpisode, totalEpisodes, malId, jikanStatus, imageUrl, rating, userId],
           function(err) {
             if (err) {
               console.error('Database error:', err);
               return res.status(500).json({ error: 'Internal server error', details: err.message });
             }
+            
+            // Log history when adding a new anime
+            db.run(
+              "INSERT INTO anime_history (user_id, anime_id, episode_count) VALUES (?, ?, ?)",
+              [userId, this.lastID, currentEpisode || 1]
+            );
+
             return res.status(201).json({ 
               id: this.lastID, 
               title, 
@@ -136,7 +143,8 @@ export default async function handler(req, res) {
               totalEpisodes, 
               malId, 
               jikanStatus,
-              imageUrl 
+              imageUrl,
+              rating
             });
           }
         );

@@ -14,6 +14,7 @@ export default function AnimeDetails() {
   const [watchCount, setWatchCount] = useState({ watched: 0, watching: 0, wantToWatch: 0 });
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -33,7 +34,38 @@ export default function AnimeDetails() {
       }
     };
     fetchData();
+    checkIfFavorite();
   }, [id]);
+
+  const checkIfFavorite = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get('/api/favorites', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setIsFavorite(response.data.some(fav => fav.mal_id === parseInt(id)));
+    } catch (error) {
+      console.error('Failed to check favorite status:', error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      if (isFavorite) {
+        await axios.delete(`/api/favorites?animeId=${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        await axios.post('/api/favorites', { animeId: id }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+      setIsFavorite(!isFavorite);
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
 
   const handleStatusChange = async (newStatus) => {
     const token = localStorage.getItem('token');
@@ -123,6 +155,12 @@ export default function AnimeDetails() {
               <p className="mb-2 text-text-100">Watching: {watchCount?.watching ?? 0} users</p>
               <p className="mb-2 text-text-100">Want to Watch: {watchCount?.wantToWatch ?? 0} users</p>
             </div>
+            <button
+              onClick={toggleFavorite}
+              className={`mt-4 px-4 py-2 rounded ${isFavorite ? 'bg-red-500' : 'bg-blue-500'} text-white`}
+            >
+              {isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+            </button>
           </div>
         </div>
 
